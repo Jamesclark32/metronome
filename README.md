@@ -6,6 +6,41 @@ plays its own sound, and other apps and AI agents can add, list, and stop timers
 
 Nothing persists: Metronome starts empty on every launch, and quitting clears all timers.
 
+## Install
+
+Metronome runs on **Apple silicon Macs with macOS 13 Ventura or later**. Intel Macs are not
+supported.
+
+1. Download `Metronome-<version>.zip` from the
+   [latest release](https://github.com/Jamesclark32/metronome/releases/latest). Optionally,
+   check it against the `.sha256` file next to it:
+
+   ```sh
+   shasum -a 256 -c Metronome-<version>.zip.sha256
+   ```
+
+2. Unzip it, move `Metronome.app` to `/Applications`, and clear the download quarantine:
+
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Metronome.app
+   open /Applications/Metronome.app
+   ```
+
+3. Optionally, put the `metronome` command on your `PATH`:
+
+   ```sh
+   sudo ln -sf /Applications/Metronome.app/Contents/Helpers/metronome /usr/local/bin/metronome
+   ```
+
+**About the signature:** releases are ad-hoc signed, not signed with an Apple Developer ID or
+notarized. macOS therefore refuses to open a downloaded copy ("Apple could not verify…") until
+you remove the quarantine attribute as in step 2. You can also click **Open Anyway** in System
+Settings → Privacy & Security after the first attempt. The app has no network access and does
+not need any special permissions. It only asks to post notifications.
+
+To uninstall, quit Metronome and delete `/Applications/Metronome.app`, the `metronome` link if
+you made one, and `~/Library/Application Support/Metronome`.
+
 ## Quick entry
 
 Press **⌃⌥T** (Control-Option-T) anywhere, or click the menu-bar icon, then type one line and
@@ -114,6 +149,13 @@ Requires Xcode 16 or later (Swift 6) on macOS 13 or later.
 swift build && swift test
 scripts/package-app.sh    # ad-hoc signed build/Metronome.app
 ```
+
+## Releasing
+
+Push a version tag, such as `git tag v0.1.0 && git push origin v0.1.0`. The Release workflow
+tests the build, packages `Metronome.app` with the version from the tag and the `metronome`
+command inside the bundle, and attaches `Metronome-<version>.zip` and its `.sha256` to a new
+GitHub release.
 
 ## License
 
