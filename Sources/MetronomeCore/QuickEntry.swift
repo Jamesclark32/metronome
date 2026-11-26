@@ -71,6 +71,55 @@ public enum QuickEntry {
             sound: sound)
     }
 
+    /// Builds a timer from separate fields, as the MCP `add_timer` tool sends them.
+    /// Give either `duration` (with `every` to repeat) or `at`.
+    public static func spec(
+        name: String?, duration: String?, every: Bool, at: String?, sound: String?,
+        now: Date = Date(), calendar: Calendar = .current
+    ) throws -> TimerSpec {
+        var soundValue: Sound?
+        if let sound, !sound.isEmpty {
+            let name = sound.hasPrefix("~") ? String(sound.dropFirst()) : sound
+            guard let match = Sound(name: name) else {
+                let choices = Sound.allCases.map(\.rawValue).joined(separator: ", ")
+                throw MetronomeError("Unknown sound \(sound). Choose one of: \(choices).")
+            }
+            soundValue = match
+        }
+        let name = name?.trimmingCharacters(in: .whitespaces) ?? ""
+        let duration = duration?.trimmingCharacters(in: .whitespaces) ?? ""
+        let at = at?.trimmingCharacters(in: .whitespaces) ?? ""
+
+        if !at.isEmpty {
+            if !duration.isEmpty { throw MetronomeError("Use a duration or an at time, not both.") }
+            if every { throw MetronomeError("every needs a duration, not an at time.") }
+            let clock = at.hasPrefix("@") ? String(at.dropFirst()) : at
+            let date = try nextOccurrence(of: clock, after: now, calendar: calendar)
+            return TimerSpec(name: name.isEmpty ? "Deadline" : name, schedule: .deadline(date), sound: soundValue)
+        }
+        guard !duration.isEmpty else { throw MetronomeError("Give a duration such as 5m, or an at time such as 14:30.") }
+        guard let seconds = parseDurationPhrase(duration) else {
+            throw MetronomeError("Can't read the duration \"\(duration)\"; use 90s, 5m, 1h 20m, or 1:30.")
+        }
+        guard seconds > 0 else { throw MetronomeError("The duration must be more than zero.") }
+        return TimerSpec(
+            name: name.isEmpty ? "Timer" : name,
+            schedule: every ? .interval(seconds) : .countdown(seconds),
+            sound: soundValue)
+    }
+
+    /// One or more duration tokens, such as `1h 20m`; nil when any token is not a duration.
+    public static func parseDurationPhrase(_ text: String) -> TimeInterval? {
+        let tokens = text.split(whereSeparator: \.isWhitespace)
+        guard !tokens.isEmpty else { return nil }
+        var total: TimeInterval = 0
+        for token in tokens {
+            guard let seconds = parseDuration(String(token)) else { return nil }
+            total += seconds
+        }
+        return total
+    }
+
     /// `90s`, `5m`, `1h`, `1h20m`, `1:30` (m:ss), `1:30:00` (h:mm:ss); nil when not a duration.
     static func parseDuration(_ token: String) -> TimeInterval? {
         let token = token.lowercased()
