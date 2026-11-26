@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var ticker: Timer?
     private let sounds = SoundQueue(player: SystemSoundPlayer())
     private let notifier = Notifier()
+    private var controlServer: ControlServer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -48,7 +49,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.model.tick() }
         }
+        startControlServer()
         model.refresh()
+    }
+
+    /// Lets the `metronome` CLI and MCP server add, list, and change timers.
+    private func startControlServer() {
+        let service = ControlService(engine: model.engine)
+        let server = ControlServer { service.handle(json: $0) }
+        do {
+            try server.start()
+            controlServer = server
+        } catch {
+            model.error = "The metronome CLI can't connect: \(error.localizedDescription)"
+        }
     }
 
     @objc private func togglePopover() {

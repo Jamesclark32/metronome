@@ -8,11 +8,16 @@ VERSION="${1:-0.0.0-dev}"
 APP="build/Metronome.app"
 
 swift build -c release --arch arm64 --product MetronomeApp
+swift build -c release --arch arm64 --product metronome
 BIN="$(swift build -c release --arch arm64 --show-bin-path)"
 
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Helpers"
 cp "$BIN/MetronomeApp" "$APP/Contents/MacOS/Metronome"
+# The CLI lives in Helpers: Contents/MacOS/metronome would collide with
+# Contents/MacOS/Metronome on a case-insensitive file system.
+cp "$BIN/metronome" "$APP/Contents/Helpers/metronome"
+codesign --force --sign - --identifier com.jamesclark32.metronome.cli "$APP/Contents/Helpers/metronome"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
