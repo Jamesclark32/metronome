@@ -65,6 +65,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// metronome://add?cmd=… adds an agent timer. A bad command opens the popover
+    /// with the text filled in and the error shown, so it can be fixed.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        let service = ControlService(engine: model.engine)
+        for url in urls {
+            do {
+                let request = try URLCommand.request(from: url)
+                let response = service.handle(request)
+                if !response.ok {
+                    model.input = request.text ?? ""
+                    throw MetronomeError(response.error ?? "The URL command failed.")
+                }
+            } catch {
+                model.error = error.localizedDescription
+                showPopover()
+            }
+        }
+    }
+
     @objc private func togglePopover() {
         popover.isShown ? popover.performClose(nil) : showPopover()
     }

@@ -35,6 +35,13 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key><string>com.jamesclark32.metronome</string>
+            <key>CFBundleURLSchemes</key><array><string>metronome</string></array>
+        </dict>
+    </array>
 </dict>
 </plist>
 PLIST
