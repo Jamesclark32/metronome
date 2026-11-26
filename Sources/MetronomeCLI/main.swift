@@ -11,6 +11,7 @@ let usage = """
       resume <id or name>        Resume a paused timer
       snooze <id or name> [--for 10m]
                                  Put off a timer's next firing (default 5m)
+      mcp                        Run the MCP server on stdin/stdout (for AI agents)
       version                    Print the version
 
     Timer commands: a duration (90s, 5m, 1h 20m, 1:30) or a time (@14:30, @2:30pm),
@@ -114,6 +115,10 @@ case "stop", "pause", "resume", "snooze":
     let timer = send(request).timer!
     let verb = ["stop": "Stopped", "pause": "Paused", "resume": "Resumed", "snooze": "Snoozed"][command]!
     print("\(verb) " + describe(timer))
+case "mcp":
+    // Connects per call, so the server starts even before the app does and
+    // reports "not running" as a tool error.
+    MCPServer(send: { try ControlClient.send($0) }).runStdio()
 case "version", "--version", "-v":
     print("metronome \(Metronome.version)")
 case "help", "--help", "-h":
