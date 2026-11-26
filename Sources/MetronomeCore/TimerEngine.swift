@@ -11,6 +11,7 @@ public final class TimerEngine: @unchecked Sendable {
     private let lock = NSLock()
     private var items: [MetronomeTimer] = []
     private var nextID = 1
+    private var nextRotation = 0
     private var changeHandler: (@Sendable () -> Void)?
 
     public init() {}
@@ -30,7 +31,7 @@ public final class TimerEngine: @unchecked Sendable {
             }
             let timer = MetronomeTimer(
                 id: nextID, name: spec.name, schedule: spec.schedule,
-                sound: spec.sound ?? .glass, source: source,
+                sound: spec.sound ?? rotatedSound(), source: source,
                 state: .running, dueDate: due, pausedRemaining: nil)
             nextID += 1
             items.append(timer)
@@ -133,6 +134,18 @@ public final class TimerEngine: @unchecked Sendable {
     }
 
     // MARK: - Helpers
+
+    /// The next sound in rotation that no current timer uses, so concurrent timers
+    /// sound different; once all five are taken, the rotation continues regardless.
+    /// Call with the lock held.
+    private func rotatedSound() -> Sound {
+        let all = Sound.allCases
+        let inUse = Set(items.map(\.sound))
+        let offset = (0..<all.count).first { !inUse.contains(all[(nextRotation + $0) % all.count]) } ?? 0
+        let index = (nextRotation + offset) % all.count
+        nextRotation = index + 1
+        return all[index]
+    }
 
     private func update(_ id: Int, _ change: (inout MetronomeTimer) throws -> Void) throws -> MetronomeTimer {
         try mutate {

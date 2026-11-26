@@ -13,6 +13,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let popover = NSPopover()
     private var hotKey: HotKey?
     private var ticker: Timer?
+    private let sounds = SoundQueue(player: SystemSoundPlayer())
+    private let notifier = Notifier()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -26,6 +28,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
 
         model.onRefresh = { [weak self] in self?.updateTitle() }
+        notifier.start()
+        model.onFire = { [weak self] fired in
+            self?.sounds.enqueue(fired.map(\.sound))
+            self?.notifier.post(fired)
+        }
         hotKey = HotKey(keyCode: kVK_ANSI_T, modifiers: controlKey | optionKey) { [weak self] in
             self?.showPopover()
         }
